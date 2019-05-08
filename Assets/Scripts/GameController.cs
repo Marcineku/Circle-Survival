@@ -9,10 +9,21 @@ public class GameController : MonoBehaviour
     public GreenBomb greenBomb;
     public Image clockFillImage;
     public Camera mainCamera;
+    public Text gameTimeText;
+
+    private float gameTime;
     
     void Start()
     {
         StartCoroutine("SpawnBombs");
+
+        gameTime = 0.0f;
+    }
+
+    void Update()
+    {
+        gameTime += Time.deltaTime;
+        gameTimeText.text = gameTime.ToString("0.00");
     }
 
     IEnumerator SpawnBombs()
