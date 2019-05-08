@@ -1,10 +1,14 @@
 ﻿using System.Collections;
 using UnityEngine;
+using UnityEngine.UI;
 
 public class GameController : MonoBehaviour
 {
+    public Canvas canvas;
     public Transform spawnArea;
     public GreenBomb greenBomb;
+    public Image clockFillImage;
+    public Camera mainCamera;
     
     void Start()
     {
@@ -21,10 +25,19 @@ public class GameController : MonoBehaviour
                                               Random.Range(-range.y, range.y));
             Vector2 spawnPosition = origin + randomRange;
 
-            GreenBomb clone = Instantiate(greenBomb, spawnPosition, Quaternion.identity);
-            clone.destructionTimer = Random.Range(2.0f, 4.0f);
+            SpawnGreenBomb(spawnPosition);
 
             yield return new WaitForSeconds(1);
         }
+    }
+
+    void SpawnGreenBomb(Vector2 spawnPosition)
+    {
+        float destructionTimer = Random.Range(2.0f, 4.0f);
+        GreenBomb greenBombClone = Instantiate(greenBomb, spawnPosition, Quaternion.identity);
+        Image clockFillImageClone = Instantiate(clockFillImage, mainCamera.WorldToScreenPoint(spawnPosition), Quaternion.identity, canvas.transform);
+
+        greenBombClone.destructionTimer = destructionTimer;
+        greenBombClone.clockFillImage = clockFillImageClone;
     }
 }
