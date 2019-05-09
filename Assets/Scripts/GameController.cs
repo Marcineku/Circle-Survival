@@ -12,7 +12,7 @@ public class GameController : MonoBehaviour
     public const float blackBombAppearanceTimeFraction = 0.1f;
     public const int maxBombCount = 50;
     public const int maxRandomPositionIterations = 1000;
-        
+
     public Text gameTimeText;
 
     public Transform spawnArea;
