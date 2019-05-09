@@ -1,41 +1,30 @@
 ﻿using UnityEngine;
 using UnityEngine.UI;
 
-public class GreenBomb : MonoBehaviour
+public class GreenBomb : Bomb
 {
-    public float destructionTimer;
     public Image clockFillImage;
-
-    private CircleCollider2D circleCollider;
-    private Camera mainCamera;
 
     private float lifeSpan;
 
-    void Start()
+    protected override void Start()
     {
-        Destroy(gameObject, destructionTimer);
+        lifeSpan = 0.0f;
         Destroy(clockFillImage.gameObject, destructionTimer);
 
-        circleCollider = GetComponent<CircleCollider2D>();
-        mainCamera = Camera.main;
-
-        lifeSpan = 0.0f;
+        base.Start();
     }
 
-    void Update()
+    protected override void Update()
     {
         lifeSpan += Time.deltaTime;
-
         clockFillImage.fillAmount = lifeSpan / destructionTimer;
+        
+        base.Update();
+    }
 
-        if (Input.touchCount > 0)
-        {
-            Touch touch = Input.GetTouch(0);
-            if (touch.phase == TouchPhase.Began && circleCollider.OverlapPoint(mainCamera.ScreenToWorldPoint(touch.position)))
-            {
-                Destroy(gameObject);
-                Destroy(clockFillImage.gameObject);
-            }
-        }
+    protected override void OnTouch()
+    {
+        Destroy(clockFillImage.gameObject);
     }
 }

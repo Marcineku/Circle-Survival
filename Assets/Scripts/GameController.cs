@@ -1,23 +1,40 @@
 ﻿using System.Collections;
+using System.Linq;
 using UnityEngine;
 using UnityEngine.UI;
 
 public class GameController : MonoBehaviour
 {
-    public Canvas canvas;
+    public const float bombInitialSpawnRate = 2.0f;
+    public const float greenBombInitialDestructionTimeMin = 2.0f;
+    public const float greenBombInitialDestructionTimeMax = 4.0f;
+    public const float blackBombDestructionTimer = 3.0f;
+    public const float blackBombAppearanceTimeFraction = 0.1f;
+    public const int maxBombCount = 50;
+    public const int maxRandomPositionIterations = 1000;
+
+    public Text gameTimeText;
+
     public Transform spawnArea;
     public GreenBomb greenBomb;
     public Image clockFillImage;
-    public Camera mainCamera;
-    public Text gameTimeText;
+    public Canvas clockFillCanvas;
+    public BlackBomb blackBomb;
 
     private float gameTime;
-    
+
+    private float bombSpawnRate;
+    private float greenBombDestructionTimeMin;
+    private float greenBombDestructionTimeMax;
+
     void Start()
     {
         StartCoroutine("SpawnBombs");
 
         gameTime = 0.0f;
+        bombSpawnRate = bombInitialSpawnRate;
+        greenBombDestructionTimeMin = greenBombInitialDestructionTimeMin;
+        greenBombDestructionTimeMax = greenBombInitialDestructionTimeMax;
     }
 
     void Update()
@@ -30,25 +47,60 @@ public class GameController : MonoBehaviour
     {
         while (true)
         {
-            Vector2 origin = spawnArea.position;
-            Vector2 range = spawnArea.localScale / 2.0f;
-            Vector2 randomRange = new Vector2(Random.Range(-range.x, range.x),
-                                              Random.Range(-range.y, range.y));
-            Vector2 spawnPosition = origin + randomRange;
+            GameObject[] bombs = GameObject.FindGameObjectsWithTag("Bomb");
 
-            SpawnGreenBomb(spawnPosition);
+            if (bombs.Length <= maxBombCount)
+            {
+                Vector2 spawnPosition = GetRandomSpawnPosition(bombs);
 
-            yield return new WaitForSeconds(1);
+                if (Random.value <= blackBombAppearanceTimeFraction)
+                {
+                    SpawnBlackBomb(spawnPosition);
+                }
+                else
+                {
+                    SpawnGreenBomb(spawnPosition);
+                }
+            }
+
+            yield return new WaitForSeconds(bombSpawnRate);
         }
+    }
+
+    Vector2 GetRandomSpawnPosition(GameObject[] bombs)
+    {
+        float bombRadius = greenBomb.GetComponent<CircleCollider2D>().radius;
+        Vector2 origin = spawnArea.position;
+        Vector2 range = spawnArea.localScale / 2.0f;
+
+        int iterations = 0;
+        Vector2 spawnPosition;
+        int count;
+        do
+        {
+            ++iterations;
+            Vector2 randomRange = new Vector2(Random.Range(-range.x + bombRadius, range.x - bombRadius),
+                                              Random.Range(-range.y + bombRadius, range.y - bombRadius));
+            spawnPosition = randomRange + origin;
+            count = bombs.Count(bomb => Vector2.Distance(bomb.transform.position, spawnPosition) < bombRadius * 2);
+        } while (count > 0 && iterations < maxRandomPositionIterations);
+
+        return spawnPosition;
     }
 
     void SpawnGreenBomb(Vector2 spawnPosition)
     {
-        float destructionTimer = Random.Range(2.0f, 4.0f);
+        float destructionTimer = Random.Range(greenBombDestructionTimeMin, greenBombDestructionTimeMax);
         GreenBomb greenBombClone = Instantiate(greenBomb, spawnPosition, Quaternion.identity);
-        Image clockFillImageClone = Instantiate(clockFillImage, mainCamera.WorldToScreenPoint(spawnPosition), Quaternion.identity, canvas.transform);
+        Image clockFillImageClone = Instantiate(clockFillImage, spawnPosition, Quaternion.identity, clockFillCanvas.transform);
 
         greenBombClone.destructionTimer = destructionTimer;
         greenBombClone.clockFillImage = clockFillImageClone;
+    }
+
+    void SpawnBlackBomb(Vector2 spawnPosition)
+    {
+        BlackBomb blackBombClone = Instantiate(blackBomb, spawnPosition, Quaternion.identity);
+        blackBombClone.destructionTimer = blackBombDestructionTimer;
     }
 }
