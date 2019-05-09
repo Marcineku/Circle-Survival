@@ -2,6 +2,15 @@
 
 public class BlackBomb : Bomb
 {
+    private GameController gameController;
+
+    protected override void Awake()
+    {
+        gameController = GameObject.FindGameObjectWithTag("GameController").GetComponent<GameController>();
+
+        base.Awake();
+    }
+
     protected override void Start()
     {
 
@@ -16,6 +25,6 @@ public class BlackBomb : Bomb
 
     protected override void OnTouch()
     {
-
+        gameController.GameOver();
     }
 }

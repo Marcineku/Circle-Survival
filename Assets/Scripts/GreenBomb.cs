@@ -6,11 +6,15 @@ public class GreenBomb : Bomb
     public Image clockFillImage;
 
     private float lifeSpan;
+    private bool isTouched;
+    private GameController gameController;
 
     protected override void Start()
     {
         lifeSpan = 0.0f;
+        isTouched = false;
         Destroy(clockFillImage.gameObject, destructionTimer);
+        gameController = GameObject.FindGameObjectWithTag("GameController").GetComponent<GameController>();
 
         base.Start();
     }
@@ -25,6 +29,15 @@ public class GreenBomb : Bomb
 
     protected override void OnTouch()
     {
+        isTouched = true;
         Destroy(clockFillImage.gameObject);
+    }
+
+    private void OnDestroy()
+    {
+        if (!isTouched)
+        {
+            gameController.GameOver();
+        }
     }
 }
