@@ -5,14 +5,14 @@ using UnityEngine.UI;
 
 public class GameController : MonoBehaviour
 {
-    public const float bombInitialSpawnRate = 2.0f;
+    public const float bombInitialSpawnInterval = 2.0f;
     public const float greenBombInitialDestructionTimeMin = 2.0f;
     public const float greenBombInitialDestructionTimeMax = 4.0f;
     public const float blackBombDestructionTimer = 3.0f;
     public const float blackBombAppearanceTimeFraction = 0.1f;
     public const int maxBombCount = 50;
     public const int maxRandomPositionIterations = 1000;
-
+        
     public Text gameTimeText;
 
     public Transform spawnArea;
@@ -20,10 +20,14 @@ public class GameController : MonoBehaviour
     public Image clockFillImage;
     public Canvas clockFillCanvas;
     public BlackBomb blackBomb;
+    
+    public AnimationCurve bombSpawnIntervalCurve;
+    public AnimationCurve greenBombDestructionTimeMinCurve;
+    public AnimationCurve greenBombDestructionTimeMaxCurve;
 
     private float gameTime;
 
-    private float bombSpawnRate;
+    private float bombSpawnInterval;
     private float greenBombDestructionTimeMin;
     private float greenBombDestructionTimeMax;
 
@@ -32,14 +36,15 @@ public class GameController : MonoBehaviour
         StartCoroutine("SpawnBombs");
 
         gameTime = 0.0f;
-        bombSpawnRate = bombInitialSpawnRate;
-        greenBombDestructionTimeMin = greenBombInitialDestructionTimeMin;
-        greenBombDestructionTimeMax = greenBombInitialDestructionTimeMax;
     }
 
     void Update()
     {
         gameTime += Time.deltaTime;
+        bombSpawnInterval = bombSpawnIntervalCurve.Evaluate(gameTime);
+        greenBombDestructionTimeMin = greenBombDestructionTimeMinCurve.Evaluate(gameTime);
+        greenBombDestructionTimeMax = greenBombDestructionTimeMaxCurve.Evaluate(gameTime);
+
         gameTimeText.text = gameTime.ToString("0.00");
     }
 
@@ -63,7 +68,7 @@ public class GameController : MonoBehaviour
                 }
             }
 
-            yield return new WaitForSeconds(bombSpawnRate);
+            yield return new WaitForSeconds(bombSpawnInterval);
         }
     }
 
