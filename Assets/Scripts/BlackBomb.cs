@@ -1,30 +1,16 @@
-﻿using UnityEngine;
-
-public class BlackBomb : Bomb
+﻿public class BlackBomb : Bomb
 {
-    private GameController gameController;
+    protected override void OnAwake()
+    { }
 
-    protected override void Awake()
+    protected override void OnUpdate()
+    { }
+
+    protected override void OnTap()
     {
-        gameController = GameObject.FindGameObjectWithTag("GameController").GetComponent<GameController>();
-
-        base.Awake();
-    }
-
-    protected override void Start()
-    {
-
-        base.Start();
-    }
-
-    protected override void Update()
-    {
-
-        base.Update();
-    }
-
-    protected override void OnTouch()
-    {
-        gameController.GameOver();
+        if (!OneDidExploded)
+        {
+            OneDidExploded = true;
+        }
     }
 }

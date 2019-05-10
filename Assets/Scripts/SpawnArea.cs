@@ -2,7 +2,7 @@
 
 public class SpawnArea : MonoBehaviour
 {
-    public Color gizmosColor = new Color(0.9f, 0.5f, 0.5f, 0.5f);
+    public readonly Color gizmosColor = new Color(0.9f, 0.5f, 0.5f, 0.5f);
 
     private void OnDrawGizmos()
     {

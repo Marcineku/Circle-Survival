@@ -110,4 +110,5 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   destructionTimer: 0
-  clockFillImage: {fileID: 0}
+  clockFillImage: {fileID: 5042249188652329512, guid: 49e0a843a316c574694fcd9724cec8b1,
+    type: 3}

@@ -2,34 +2,90 @@
 
 public abstract class Bomb : MonoBehaviour
 {
-    public float destructionTimer;
+    public delegate void ExplosionAction();
+    public static event ExplosionAction OnOneExploded;
 
-    private CircleCollider2D circleCollider;
-    private Camera mainCamera;
-
-    protected virtual void Awake()
+    private static bool oneDidExploded = false;
+    protected static bool OneDidExploded
     {
-        circleCollider = GetComponent<CircleCollider2D>();
-        mainCamera = Camera.main;
-    }
-
-    protected virtual void Start()
-    {
-        Destroy(gameObject, destructionTimer);
-    }
-
-    protected virtual void Update()
-    {
-        if (Input.touchCount > 0)
+        get { return oneDidExploded; }
+        set
         {
-            Touch touch = Input.GetTouch(0);
-            if (touch.phase == TouchPhase.Began && circleCollider.OverlapPoint(mainCamera.ScreenToWorldPoint(touch.position)))
+            oneDidExploded = value;
+            if (value)
             {
-                OnTouch();
-                Destroy(gameObject);
+                OnOneExploded?.Invoke();
             }
         }
     }
 
-    protected abstract void OnTouch();
+    public static void ResetStaticVariables()
+    {
+        oneDidExploded = false;
+    }
+    
+    [HideInInspector]
+    public float destructionTimer;
+
+    protected float LifeSpan { get; private set; }
+    protected bool IsActive { get; private set; }
+
+    protected abstract void OnAwake();
+    protected abstract void OnUpdate();
+    protected abstract void OnTap();
+
+    private CircleCollider2D circleCollider;
+
+    protected void Awake()
+    {
+        LifeSpan = 0.0f;
+        IsActive = true;
+
+        circleCollider = GetComponent<CircleCollider2D>();
+
+        OnAwake();
+    }
+
+    protected void Update()
+    {
+        if (IsActive)
+        {
+            LifeSpan += Time.deltaTime;
+
+            if (LifeSpan >= destructionTimer)
+            {
+                Destroy(gameObject);
+            }
+            else
+            {
+                OnUpdate();
+            }
+        }
+    }
+
+    private void OnEnable()
+    {
+        InputController.OnTap += InputController_OnTap;
+        GameController.OnGameStateChanged += GameController_OnGameStateChanged;
+    }
+
+    private void OnDisable()
+    {
+        InputController.OnTap -= InputController_OnTap;
+        GameController.OnGameStateChanged -= GameController_OnGameStateChanged;
+    }
+
+    private void InputController_OnTap(Vector2 tapPosition)
+    {
+        if (circleCollider.OverlapPoint(tapPosition))
+        {
+            OnTap();
+            Destroy(gameObject);
+        }
+    }
+
+    private void GameController_OnGameStateChanged(bool isGameRunning)
+    {
+        IsActive = isGameRunning;
+    }
 }

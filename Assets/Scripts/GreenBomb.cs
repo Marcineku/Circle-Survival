@@ -4,40 +4,43 @@ using UnityEngine.UI;
 public class GreenBomb : Bomb
 {
     public Image clockFillImage;
+    
+    private bool isTapped;
+    private GameObject clockFillCanvas;
+    private Image clockFillImageClone;
 
-    private float lifeSpan;
-    private bool isTouched;
-    private GameController gameController;
-
-    protected override void Start()
+    protected override void OnAwake()
     {
-        lifeSpan = 0.0f;
-        isTouched = false;
-        Destroy(clockFillImage.gameObject, destructionTimer);
-        gameController = GameObject.FindGameObjectWithTag("GameController").GetComponent<GameController>();
+        isTapped = false;
 
-        base.Start();
+        clockFillCanvas = GameObject.FindGameObjectWithTag("ClockFillCanvas");
     }
 
-    protected override void Update()
+    private void Start()
     {
-        lifeSpan += Time.deltaTime;
-        clockFillImage.fillAmount = lifeSpan / destructionTimer;
-        
-        base.Update();
+        clockFillImageClone = Instantiate(clockFillImage, transform.position, Quaternion.identity, clockFillCanvas.transform);
     }
 
-    protected override void OnTouch()
+    protected override void OnUpdate()
     {
-        isTouched = true;
-        Destroy(clockFillImage.gameObject);
+        clockFillImageClone.fillAmount = LifeSpan / destructionTimer;
+    }
+
+    protected override void OnTap()
+    {
+        isTapped = true;
     }
 
     private void OnDestroy()
     {
-        if (!isTouched)
+        if (clockFillImageClone != null)
         {
-            gameController.GameOver();
+            Destroy(clockFillImageClone.gameObject);
+        }
+
+        if (!isTapped && !OneDidExploded)
+        {
+            OneDidExploded = true;
         }
     }
 }
