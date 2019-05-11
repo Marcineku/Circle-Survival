@@ -1,4 +1,5 @@
 ﻿using System.Collections;
+using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -10,28 +11,26 @@ public class GameController : MonoBehaviour
     public static event GameStateAction OnGameStateChanged;
 
     public const float timeToStart = 1.0f;
-    public const float timeBeforeCanLeaveGameOverScreen = 1.0f;
+    public const float timeBeforeCanLeaveGameOverScreen = 0.5f;
     public const float blackBombDestructionTimer = 3.0f;
     public const float blackBombAppearanceTimeFraction = 0.1f;
     public const int maxBombCount = 50;
     public const int maxRandomPositionIterations = 1000;
 
     public Text gameTimeText;
+    public Animator gameTimeAnimator;
     public Transform spawnArea;
     public GreenBomb greenBomb;
     public BlackBomb blackBomb;
     public GameObject gameOverPanel; 
     public Text currentScore;
-    public Text highScore;
     public Text highScoreInfo;
+    public AudioSource gameOverSound;
     
     public AnimationCurve bombSpawnIntervalCurve;
     public AnimationCurve greenBombDestructionTimeMinCurve;
     public AnimationCurve greenBombDestructionTimeMaxCurve;
-
-    private float bombSpawnInterval;
-    private float greenBombDestructionTimeMin;
-    private float greenBombDestructionTimeMax;
+    
     private float gameTime;
     private float gameOverTime;
     private float greenBombRadius;
@@ -52,6 +51,11 @@ public class GameController : MonoBehaviour
     private Vector2 spawnAreaOrigin;
     private Vector2 spawnAreaRange;
 
+    private Dictionary<int, GameObject> bombs;
+
+    private int gameTimeAnimTrigger10;
+    private int trigger10Hash;
+
     private void Awake()
     {
         gameTime = 0.0f;
@@ -61,6 +65,9 @@ public class GameController : MonoBehaviour
         greenBombRadius = greenBomb.GetComponent<CircleCollider2D>().radius * greenBomb.transform.localScale.x;
         spawnAreaOrigin = spawnArea.position;
         spawnAreaRange = spawnArea.localScale / 2.0f;
+        bombs = new Dictionary<int, GameObject>();
+        gameTimeAnimTrigger10 = 10;
+        trigger10Hash = Animator.StringToHash("Hit10");
 
         gameTimeText.text = gameTime.ToString("0.00");
     }
@@ -75,20 +82,23 @@ public class GameController : MonoBehaviour
 
     private void Update()
     {
+        float deltaTime = Time.deltaTime;
+
         if (isGameOver)
         {
-            // TODO: Get input from Input Controller 
-            gameOverTime += Time.deltaTime;
-            if (Input.touchCount > 0 && gameOverTime >= timeBeforeCanLeaveGameOverScreen)
-            {
-                SceneManager.LoadScene(0);
-            }
+            gameOverTime += deltaTime;
         }
 
         if (IsGameRunning)
         {
-            gameTime += Time.deltaTime;
+            gameTime += deltaTime;
             gameTimeText.text = gameTime.ToString("0.00");
+
+            if (gameTime >= gameTimeAnimTrigger10)
+            {
+                gameTimeAnimTrigger10 += 10;
+                gameTimeAnimator.SetTrigger(trigger10Hash);
+            }
         }
     }
 
@@ -99,11 +109,11 @@ public class GameController : MonoBehaviour
 
         while (true)
         {
-            GameObject[] bombs = GameObject.FindGameObjectsWithTag("Bomb");
+            GameObject[] bombsArray = bombs.Values.ToArray();
 
-            if (bombs.Length <= maxBombCount && IsGameRunning)
+            if (bombsArray.Length <= maxBombCount && IsGameRunning)
             {
-                Vector2 spawnPosition = GetRandomSpawnPosition(bombs);
+                Vector2 spawnPosition = GetRandomSpawnPosition(bombsArray);
 
                 if (Random.value <= blackBombAppearanceTimeFraction)
                 {
@@ -114,9 +124,8 @@ public class GameController : MonoBehaviour
                     SpawnGreenBomb(spawnPosition);
                 }
             }
-
-            bombSpawnInterval = bombSpawnIntervalCurve.Evaluate(gameTime);
-            yield return new WaitForSeconds(bombSpawnInterval);
+            
+            yield return new WaitForSeconds(bombSpawnIntervalCurve.Evaluate(gameTime));
         }
     }
 
@@ -144,9 +153,8 @@ public class GameController : MonoBehaviour
 
     private void SpawnGreenBomb(Vector2 spawnPosition)
     {
-        greenBombDestructionTimeMin = greenBombDestructionTimeMinCurve.Evaluate(gameTime);
-        greenBombDestructionTimeMax = greenBombDestructionTimeMaxCurve.Evaluate(gameTime);
-        float destructionTimer = Random.Range(greenBombDestructionTimeMin, greenBombDestructionTimeMax);
+        float destructionTimer = Random.Range(greenBombDestructionTimeMinCurve.Evaluate(gameTime),
+                                              greenBombDestructionTimeMaxCurve.Evaluate(gameTime));
 
         GreenBomb greenBombClone = Instantiate(greenBomb, spawnPosition, Quaternion.identity);
         greenBombClone.destructionTimer = destructionTimer;
@@ -160,38 +168,65 @@ public class GameController : MonoBehaviour
 
     private void OnEnable()
     {
+        Bomb.OnCreated += Bomb_OnCreated;
+        Bomb.OnDestroyed += Bomb_OnDestroyed;
         Bomb.OnOneExploded += Bomb_OnOneExploded;
+        InputController.OnTap += InputController_OnTap;
     }
 
     private void OnDisable()
     {
+        Bomb.OnCreated -= Bomb_OnCreated;
+        Bomb.OnDestroyed -= Bomb_OnDestroyed;
         Bomb.OnOneExploded -= Bomb_OnOneExploded;
+        InputController.OnTap -= InputController_OnTap;
+    }
+    
+    private void Bomb_OnCreated(GameObject bomb)
+    {
+        bombs.Add(bomb.GetInstanceID(), bomb);
+    }
+
+    private void Bomb_OnDestroyed(GameObject bomb)
+    {
+        bombs.Remove(bomb.GetInstanceID());
     }
 
     private void Bomb_OnOneExploded()
     {
-        IsGameRunning = false;
-
-        float highScorevalue = PlayerPrefs.GetFloat("HighScore", 0.0f);
-        currentScore.text = "Your score: " + gameTime.ToString("0.00") + " s";
-        highScore.text = "High score: " + highScorevalue.ToString("0.00") + " s";
-
-        gameTime = (float)System.Math.Round(gameTime, 2);
-        highScorevalue = (float)System.Math.Round(highScorevalue, 2);
-
-        if (gameTime > highScorevalue)
+        if (!isGameOver)
         {
-            PlayerPrefs.SetFloat("HighScore", gameTime);
-            highScoreInfo.text = "New record!";
+            IsGameRunning = false;
+            isGameOver = true;
+
+            float highScorevalue = PlayerPrefs.GetFloat("HighScore", 0.0f);
+            highScorevalue = (float)System.Math.Round(highScorevalue, 2);
+            gameTime = (float)System.Math.Round(gameTime, 2);
+
+            currentScore.text = "Score: " + gameTime.ToString("0.00") + " s";
+
+            if (gameTime > highScorevalue)
+            {
+                PlayerPrefs.SetFloat("HighScore", gameTime);
+                highScoreInfo.text = "New record!";
+            }
+            else
+            {
+                highScoreInfo.text = "Not quite the record.";
+            }
+
+            gameOverPanel.SetActive(true);
+            gameTimeText.gameObject.SetActive(false);
+
+            gameOverSound.Play();
         }
-        else
+    }
+    
+    private void InputController_OnTap(Vector2 tapPosition)
+    {
+        if (gameOverTime >= timeBeforeCanLeaveGameOverScreen)
         {
-            highScoreInfo.text = "Not quite the record.";
+            SceneManager.LoadScene(0);
         }
-
-        gameOverPanel.SetActive(true);
-        gameTimeText.gameObject.SetActive(false);
-
-        isGameOver = true;
     }
 }

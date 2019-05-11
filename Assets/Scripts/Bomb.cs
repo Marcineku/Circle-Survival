@@ -5,6 +5,12 @@ public abstract class Bomb : MonoBehaviour
     public delegate void ExplosionAction();
     public static event ExplosionAction OnOneExploded;
 
+    public delegate void CreationAction(GameObject bomb);
+    public static event CreationAction OnCreated;
+
+    public delegate void DestructionAction(GameObject bomb);
+    public static event DestructionAction OnDestroyed;
+
     private static bool oneDidExploded = false;
     protected static bool OneDidExploded
     {
@@ -23,7 +29,7 @@ public abstract class Bomb : MonoBehaviour
     {
         oneDidExploded = false;
     }
-    
+
     [HideInInspector]
     public float destructionTimer;
 
@@ -31,19 +37,31 @@ public abstract class Bomb : MonoBehaviour
     protected bool IsActive { get; private set; }
 
     protected abstract void OnAwake();
+    protected abstract void OnStart();
     protected abstract void OnUpdate();
+    protected abstract void OnKill();
     protected abstract void OnTap();
 
     private CircleCollider2D circleCollider;
+
+    private bool isDestroyed;
 
     protected void Awake()
     {
         LifeSpan = 0.0f;
         IsActive = true;
+        isDestroyed = false;
 
         circleCollider = GetComponent<CircleCollider2D>();
 
+        OnCreated?.Invoke(gameObject);
+
         OnAwake();
+    }
+
+    protected void Start()
+    {
+        OnStart();
     }
 
     protected void Update()
@@ -54,12 +72,23 @@ public abstract class Bomb : MonoBehaviour
 
             if (LifeSpan >= destructionTimer)
             {
+                isDestroyed = true;
                 Destroy(gameObject);
             }
             else
             {
                 OnUpdate();
             }
+        }
+    }
+
+    protected void OnDestroy()
+    {
+        if (isDestroyed)
+        {
+            OnDestroyed?.Invoke(gameObject);
+
+            OnKill();
         }
     }
 
@@ -80,6 +109,7 @@ public abstract class Bomb : MonoBehaviour
         if (circleCollider.OverlapPoint(tapPosition))
         {
             OnTap();
+            isDestroyed = true;
             Destroy(gameObject);
         }
     }
