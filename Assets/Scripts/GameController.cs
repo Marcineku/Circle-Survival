@@ -5,11 +5,16 @@ using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
+/// <summary>
+/// Spawns bombs and manages game state
+/// </summary>
 public class GameController : MonoBehaviour
 {
+    // Events
     public delegate void GameStateAction(bool isGameRunning);
     public static event GameStateAction OnGameStateChanged;
-
+    
+    // Consts
     public const float timeToStart = 1.0f;
     public const float timeBeforeCanLeaveGameOverScreen = 0.5f;
     public const float blackBombDestructionTimer = 3.0f;
@@ -17,6 +22,7 @@ public class GameController : MonoBehaviour
     public const int maxBombCount = 50;
     public const int maxRandomPositionIterations = 1000;
 
+    // Editor refs
     public Text gameTimeText;
     public Animator gameTimeAnimator;
     public Transform spawnArea;
@@ -27,6 +33,7 @@ public class GameController : MonoBehaviour
     public Text highScoreInfo;
     public AudioSource gameOverSound;
     
+    // Curves dictating difficulty level of game that are set in the editor
     public AnimationCurve bombSpawnIntervalCurve;
     public AnimationCurve greenBombDestructionTimeMinCurve;
     public AnimationCurve greenBombDestructionTimeMaxCurve;
@@ -51,10 +58,12 @@ public class GameController : MonoBehaviour
     private Vector2 spawnAreaOrigin;
     private Vector2 spawnAreaRange;
 
+    // Dict of active bombs
     private Dictionary<int, GameObject> bombs;
 
+    // HUD animation vars, animation appears every 10 seconds
     private int gameTimeAnimTrigger10;
-    private int trigger10Hash;
+    private int gameTimeTrigger10Hash;
 
     private void Awake()
     {
@@ -67,7 +76,7 @@ public class GameController : MonoBehaviour
         spawnAreaRange = spawnArea.localScale / 2.0f;
         bombs = new Dictionary<int, GameObject>();
         gameTimeAnimTrigger10 = 10;
-        trigger10Hash = Animator.StringToHash("Hit10");
+        gameTimeTrigger10Hash = Animator.StringToHash("Hit10");
 
         gameTimeText.text = gameTime.ToString("0.00");
     }
@@ -76,7 +85,9 @@ public class GameController : MonoBehaviour
     {
         StartCoroutine(SpawnBombs());
         
+        // Make HUD visible
         gameTimeText.gameObject.SetActive(true);
+        // Make game over panel invisible
         gameOverPanel.SetActive(false);
     }
 
@@ -94,10 +105,11 @@ public class GameController : MonoBehaviour
             gameTime += deltaTime;
             gameTimeText.text = gameTime.ToString("0.00");
 
+            // Triggering HUD animation every 10 seconds
             if (gameTime >= gameTimeAnimTrigger10)
             {
                 gameTimeAnimTrigger10 += 10;
-                gameTimeAnimator.SetTrigger(trigger10Hash);
+                gameTimeAnimator.SetTrigger(gameTimeTrigger10Hash);
             }
         }
     }
@@ -130,10 +142,11 @@ public class GameController : MonoBehaviour
     }
 
     /// <summary>
-    /// 
+    /// Returns random spawn position,
+    /// ensures that bomb spawned at returned position
+    /// won't intersect with any given bomb
     /// </summary>
-    /// <param name="bombs"></param>
-    /// <returns></returns>
+    /// <param name="bombs"> Array of active bombs </param>
     private Vector2 GetRandomSpawnPosition(GameObject[] bombs)
     {
         int iterations = 0;

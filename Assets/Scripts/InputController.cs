@@ -1,5 +1,8 @@
 ﻿using UnityEngine;
 
+/// <summary>
+/// Fires touch events with touch world point
+/// </summary>
 public class InputController : MonoBehaviour
 {
     public delegate void TapAction(Vector2 tapPosition);

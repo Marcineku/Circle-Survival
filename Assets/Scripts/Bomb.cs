@@ -1,5 +1,11 @@
 ﻿using UnityEngine;
 
+/// <summary>
+/// Abstract class that every bomb type should inherit from,
+/// fires events when bomb is created, destroyed or if bomb exploded,
+/// checks if bomb has been tapped, destroys the bomb after destruction time passed and after tap.
+/// Deactivates bomb timer when game is not running (listens for game state change event from Game Controller).
+/// </summary>
 public abstract class Bomb : MonoBehaviour
 {
     public delegate void ExplosionAction();

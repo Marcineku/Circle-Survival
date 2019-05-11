@@ -1,5 +1,8 @@
 ﻿using UnityEngine;
 
+/// <summary>
+/// Visualizes spawn area in editor
+/// </summary>
 public class SpawnArea : MonoBehaviour
 {
     public readonly Color gizmosColor = new Color(0.9f, 0.5f, 0.5f, 0.5f);
